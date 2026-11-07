@@ -423,6 +423,20 @@ try {
       check("正解すると、答えにかかわる惑星の札が出る（となりの問題は2枚。順番・分け方・大きさ・重さ・1周の時間・環。幅320pxではみ出さない）", cd.n === 2 && cd.txt.some((t) => t.includes("地球　太陽から3番目・岩石の惑星") && t.includes("1周 約1年（365日）") && t.includes("環なし")) && cd.txt.some((t) => t.includes("金星")) && cd.w <= 320 && cd.sw <= 320, JSON.stringify(cd).slice(0, 300));
       await q.context().close();
     }
+    // ヒント2：その日の問題に頼らず、データから選び肢3つ以上の問題を選んで確かめる（2026-11-07 共通化。日によって検査が動かないのを防ぐ）
+    {
+      const q = await newPage(390); await closeHow(q); await q.click("#go-e"); await q.waitForTimeout(150);
+      const tag = await q.evaluate(() => __km.ALLKEYS.find((t) => { const P = __km.G.make(t); return P && P.opts.length >= 3; }));
+      await q.evaluate((t) => { __km.save((x) => { x.runs.e.list[x.runs.e.res.length] = t; }); __km.play(); }, tag);
+      await q.waitForTimeout(150);
+      await q.click("#hint"); await q.click("#hint");
+      const two = await q.locator(".ch:not(.ng)").count();
+      await q.click(`.ch:not(.ng)[data-j="${await q.evaluate(() => { const c = __km.cur(); return c.P.opts.findLastIndex((o) => o !== c.P.ans); })}"]`);
+      const one = await q.locator(".ch:not(.ng)").count();
+      const ok = await q.evaluate(() => { const c = __km.cur(); return [...document.querySelectorAll(".ch:not(.ng)")].map((b) => c.P.opts[+b.dataset.j]).join() === c.P.ans; });
+      check("ヒント2（データから選んだ選び肢3つ以上の問題）：2つにしぼり、残ったまちがいを選んでも消した選び肢は戻らず正解だけが残る", !!tag && two === 2 && one === 1 && ok, `${tag} ${two} ${one}`);
+      await q.context().close();
+    }
     check("幅320px・とても大きい文字でも横にはみ出さない", bad.length === 0, bad.join(" / "));
     check("押せる所は高さ44px以上", small.length === 0, [...new Set(small)].slice(0, 8).join(","));
   }
