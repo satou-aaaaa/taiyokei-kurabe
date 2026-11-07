@@ -189,6 +189,9 @@
     ["イオ", "木星をいちばん短い時間（約1.8日）で1周するガリレオ衛星", ["gal", "jov"], "ガリレオ衛星は内側から、イオ（約1.8日）・エウロパ・ガニメデ・カリスト（約16.7日）です。"],
     ["カリスト", "木星をいちばん長い時間（約16.7日）で1周するガリレオ衛星", ["gal", "jov"], "ガリレオ衛星は内側から、イオ（約1.8日）・エウロパ・ガニメデ・カリスト（約16.7日）です。"],
   ];
+  // 正解のあとに出す惑星の豆知識（上の MAME の惑星の文と、土星の密度。JAXA 宇宙情報センター・天文学辞典の文から）。惑星1つの問題で1つ出す
+  const PMAME = Object.fromEntries(PLANETS.map((p) => [p.n, MAME.filter((m) => m[0] === p.n).map((m) => m[1])]));
+  PMAME["土星"].push("平均の密度は0.69g/cm³で、8つの惑星の中でいちばん小さい");
   const MNAMES = MOONS.map((x) => x.n), GALI = ["イオ", "エウロパ", "ガニメデ", "カリスト"];
   MAME.forEach(([a, t, src, why], i) => { const isM = MNAMES.includes(a); for (let v = 0; v < 2; v++) { const R = rng(seedOf(`gen:mame:${i}:${v}`));
     const pool = isM ? (GALI.includes(a) && /ガリレオ衛星/.test(t) ? GALI : MNAMES) : PLANETS.map((p) => p.n), ds = pickN(R, pool.filter((x) => x !== a), 3);
@@ -226,7 +229,8 @@
   function make(tag) {
     if (!Object.prototype.hasOwnProperty.call(BANK, tag)) return null; const q = BANK[tag];
     const k = BY[q.kind], opts = q.fix ? q.opts.slice() : pickN(rng(seedOf(tag)), q.opts, q.opts.length);
-    return { tag, kind: q.kind, lv: k.lv, name: k.name, look: k.look, scene: q.scene, text: q.text || "", opts, ans: q.ans, why: q.why, at: q.at, src: q.src.map((s) => SRC[s]) };
+    return { tag, kind: q.kind, lv: k.lv, name: k.name, look: k.look, scene: q.scene, text: q.text || "", opts, ans: q.ans, why: q.why, at: q.at, src: q.src.map((s) => SRC[s]),
+      mame: (() => { if (q.kind === "mame" || !q.at || q.at.length !== 1 || !PLANETS[q.at[0]]) return ""; const ms = PMAME[PLANETS[q.at[0]].n] || []; return ms.length ? ms[seedOf("mame:" + tag) % ms.length] : ""; })() };
   }
   const pickKey = (R, kind) => { const ks = keysOf(kind); return ks[Math.floor(R() * ks.length)]; };
   // 今日の5問：やさしい2・ふつう2・むずかしい1（種類は重ねない）。日付の種で決まり、だれでも同じ
@@ -239,6 +243,6 @@
     const dh = BANK[dailyTags(date)[4]].kind, R = rng(seedOf("hard:" + date)), h = pickN(R, kindsOn(2, date).filter((x) => x !== dh), 3);
     return h.map((k) => pickKey(R, k));
   }
-  const G = { KINDS, BY, LV, SRC, PLANETS, FEATS, MOONS, SIZE, MAME, V2DAY, BANK, keysOf, kindsOf, seedOf, rng, make, dailyTags, hardTags, pickN };
+  const G = { KINDS, BY, LV, SRC, PLANETS, FEATS, MOONS, SIZE, MAME, PMAME, V2DAY, BANK, keysOf, kindsOf, seedOf, rng, make, dailyTags, hardTags, pickN };
   if (typeof module === "object" && module.exports) module.exports = G; else root.TAIYO = G;
 })(typeof window !== "undefined" ? window : globalThis);

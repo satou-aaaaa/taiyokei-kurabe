@@ -92,6 +92,7 @@ button.sub:disabled,button.main:disabled{opacity:.45;cursor:default}
 .verdict .hd{display:flex;justify-content:center;align-items:baseline;gap:10px;font-size:1.35rem;font-weight:900;flex-wrap:wrap}
 .verdict .why{font-size:1rem;line-height:1.7;margin:0;text-align:left}
 .verdict .why b{color:var(--ok2)}
+.verdict .why.mame{margin-top:6px;font-size:.95rem}
 .verdict.lose{border-color:var(--shu)}
 .hint{background:var(--paper);border:2px solid var(--gold);border-radius:14px;padding:.6rem .9rem;font-size:.95rem;line-height:1.7}
 .stars{color:var(--gold);letter-spacing:.08em;font-size:1.2rem}
@@ -677,7 +678,7 @@ function choose(j) {
   $("scene").innerHTML = sceneHtml(P, true); // 正解のあとは、惑星の札を見せる
   $("after").innerHTML = `<div class="verdict" role="status">
     <div class="hd">✓ 正解！ ${starStr(st)}</div>
-    <p class="why" data-a11y-say><b>なぜ：</b>${esc(P.why)}</p>${srcHtml(P)}
+    <p class="why" data-a11y-say><b>なぜ：</b>${esc(P.why)}</p>${P.mame ? `<p class="why mame" data-a11y-say><b>豆知識：</b>${esc(P.mame)}</p>` : ""}${srcHtml(P)}
     <button class="main ok" id="next">${fin ? "結果を見る" : "次の問題へ"}</button></div>`;
   $("next").onclick = play;
   setTimeout(() => { if ($("next") && cur && cur.done && cur.tag === P.tag) $("next").scrollIntoView({ behavior: A11y && A11y.on("calm") ? "auto" : "smooth", block: "nearest" }); }, 60);
