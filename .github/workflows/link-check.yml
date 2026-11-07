@@ -29,4 +29,5 @@ jobs:
       # （2026-11-04 incidents/2026-11-04-link-check-readme-only-main.md）
       files: '*.html README.md'
       # 自分たちの公開ページ（*.github.io）は各リポジトリの site-watch が毎日見張る。初めて公開する前の PR では 404 になるので、ここでは調べない
-      exclude: '^https://satou-aaaaa\.github\.io/'
+      # JAXA 宇宙情報センターと天文学辞典は GitHub の実行機からつながらない（2026-11-07 PR #1 で接続失敗・時間切れ。出典はブラウザで確かめ済み）
+      exclude: '^https://satou-aaaaa\.github\.io/ ^https://spaceinfo\.jaxa\.jp/ ^https://astro-dic\.jp/'
