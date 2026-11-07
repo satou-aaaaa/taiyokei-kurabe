@@ -28,13 +28,20 @@ const quoted = (t) => (t.match(/「([^」]+)」/) || [])[1] || "";
 const subj = (t) => (t.match(/^(水星|金星|地球|火星|木星|土星|天王星|海王星)/) || [])[1];
 const TYPEW = { 岩石: "岩石の惑星", ガス: "ガスの惑星", 氷: "氷の惑星" };
 const seq = (o) => o.split(" → ").map((x) => BYN[x]);
+// 衛星と冥王星（NASA「Galilean Satellite Fact Table」・Moon/Pluto Fact Sheet。出典メモ /mnt/project-files/games/taiyokei-more.md）
+// 名前・回る相手・直径 km（冥王星は 2374/2376 と分かれるので順番だけに使う）
+const MO = [["月", "地球", 3475], ["イオ", "木星", 3643], ["エウロパ", "木星", 3122], ["ガニメデ", "木星", 5262], ["カリスト", "木星", 4821], ["タイタン", "土星", 5150], ["トリトン", "海王星", 2705], ["カロン", "冥王星", 1212]];
+const DM = Object.fromEntries([...MO.map(([n, , d]) => [n, d]), ["水星", 4879], ["冥王星", 2376]]);
+const PAR = Object.fromEntries(MO.map(([n, p]) => [n, p]));
+// 豆知識の文の始まり → 答え
+const MAMEQ = [["夜明けから次の夜明け", "水星"], ["太陽にいちばん近いのに", "水星"], ["自転が逆向きなので", "金星"], ["厚い二酸化炭素", "金星"], ["1日は24時間だが", "地球"], ["長さ約3900km", "火星"], ["1日（自転）は約24時間37分", "火星"], ["とても淡く細い環", "木星"], ["1781年", "天王星"], ["環は1977年", "天王星"], ["自転と公転が、どちらも約27.3日", "月"], ["新月から次の新月", "月"], ["公転の時間が、回る相手の自転", "カロン"], ["木星をいちばん短い", "イオ"], ["木星をいちばん長い", "カリスト"]];
 
 // ---- 1. 問題（ブラウザを使わない）----
 const FIRST_DAY = '[["wa|0","kata|w1","ookii|22","tonari|o1-0","jiten|16"],["omosa|16","okijun|14","narabe|1"]]';
 {
   const all = Object.values(G.BANK), bad = [];
   const REAL = /ドラえもん|ポケモン|ジブリ|鬼滅|サンリオ|セーラームーン/;
-  const SRCOK = /^https:\/\/(nssdc\.gsfc\.nasa\.gov\/planetary\/factsheet\/|spaceinfo\.jaxa\.jp\/ja\/|astro-dic\.jp\/|www\.nao\.ac\.jp\/faq\/)/;
+  const SRCOK = /^https:\/\/(nssdc\.gsfc\.nasa\.gov\/planetary\/factsheet\/|spaceinfo\.jaxa\.jp\/ja\/|astro-dic\.jp\/|www\.nao\.ac\.jp\/(faq|new-info)\/|science\.nasa\.gov\/mars\/)/;
   check("表：gen.js の8つの惑星が、別に持った表（NASA・JAXA）と順番・距離・大きさ・重さ・1周の時間・分け方・環・自転の向きまで同じ", G.PLANETS.length === 8 && G.PLANETS.every((p, i) => { const r = PL[i]; return r.n === p.n && r.d === p.d && r.r === p.r && r.m === p.m && r.y === p.y && r.t === p.t && r.ring === p.ring && r.back === p.back; }), G.PLANETS.filter((p, i) => JSON.stringify(PL[i] && PL[i].n) !== JSON.stringify(p.n)).map((p) => p.n).join(","));
   check("表：自転が逆向きは金星だけ・環があるのは木星から外の4つ・太陽から近い順に距離がふえる", PL.filter((p) => p.back).map((p) => p.n).join() === "金星" && PL.filter((p) => p.ring).length === 4 && PL.every((p, i) => !i || p.d > PL[i - 1].d));
   check("表：特徴の文は11で、どれも別に持った表の答えと合う", G.FEATS.length === FEAT.length && G.FEATS.every(([pi, t]) => { const f = FEAT.find(([k]) => t.startsWith(k)); return f && (pi < 0 ? f[1] === "冥王星" : PL[pi].n === f[1]); }));
@@ -65,7 +72,13 @@ const FIRST_DAY = '[["wa|0","kata|w1","ookii|22","tonari|o1-0","jiten|16"],["omo
     if (k === "narabe" || k === "okijun") { const f = k === "narabe" ? (p) => p.d : (p) => -p.r;
       const ok = P.opts.filter((o) => { const v = seq(o); return v.length === 3 && v.every(Boolean) && f(v[0]) < f(v[1]) && f(v[1]) < f(v[2]); }); if (ok.length !== 1 || ok[0] !== P.ans) why.push(`並びの答え（${ok.join("/")}）`); }
     if (k === "jiten") { if (P.ans !== "金星" || !P.opts.every(isP) || P.opts.includes("天王星")) why.push("自転の答え"); }
-    if (P.ans === "冥王星") { if (P.at.length) why.push("冥王星に惑星の札"); }
+    if (k === "eisei") { const m = quoted(t); if (!PAR[m] || P.ans !== PAR[m] || P.opts.some((o) => !["地球", "火星", "木星", "土星", "天王星", "海王星", "冥王星"].includes(o))) why.push("衛星の答え"); }
+    if (k === "eiseiookii") { const ds = P.opts.map((o) => DM[o]); if (ds.some((d) => !d) || P.opts.includes("水星") && P.opts.includes("カリスト")) why.push("大きさの選び肢");
+      else if (t.includes("水星（")) { if (P.opts.filter((o) => DM[o] > DM["水星"] && PAR[o]).length !== 1 || !(DM[P.ans] > DM["水星"]) || P.opts.includes("水星")) why.push("水星より大きい衛星の答え"); }
+      else if (DM[P.ans] !== Math.max(...ds) || new Set(ds).size !== 4) why.push("いちばん大きい天体の答え"); }
+    if (k === "mame") { const f = MAMEQ.find(([x]) => quoted(t).startsWith(x)); if (!f || P.ans !== f[1] || !(BYN[P.ans] ? P.opts.every(isP) : P.opts.every((o) => PAR[o]))) why.push("豆知識の答え"); }
+    if (["eisei", "eiseiookii", "mame"].includes(k)) { if (BYN[P.ans] ? !P.at.includes(BYN[P.ans].i) : P.at.length) why.push("正解のあとの札"); }
+    else if (P.ans === "冥王星") { if (P.at.length) why.push("冥王星に惑星の札"); }
     else if (!P.at || !P.at.length || P.at.some((i) => !G.PLANETS[i])) why.push("正解のあとの札が無い");
     else if (isP(P.ans) && !P.at.includes(BYN[P.ans].i)) why.push("札に答えの惑星が無い");
     if (why.length) bad.push(q.key + "：" + why.join("・"));
@@ -74,7 +87,7 @@ const FIRST_DAY = '[["wa|0","kata|w1","ookii|22","tonari|o1-0","jiten|16"],["omo
   check("問題：とことん・練習で出る問題は300問以上（好きなだけ遊んでも、すぐに同じ問題にならない）", all.length >= 300, all.length);
   const per = G.KINDS.map((k) => [k.id, G.keysOf(k.id).length]).filter(([, n]) => n < 20);
   check("問題：どの種類も20問以上ある", per.length === 0, per.join(" "));
-  check("問題：種類は12（やさしい4・ふつう4・むずかしい4）", G.KINDS.length === 12 && [0, 1, 2].map((l) => G.kindsOf(l).length).join() === "4,4,4", [0, 1, 2].map((l) => G.kindsOf(l).length).join());
+  check("問題：種類は15（やさしい5・ふつう5・むずかしい5）。2026-11-08 から足した3つ（衛星・衛星の大きさ・豆知識）は最後にある", G.KINDS.length === 15 && G.KINDS.slice(12).every((k) => k.v === 2) && [0, 1, 2].map((l) => G.kindsOf(l).length).join() === "5,5,5", [0, 1, 2].map((l) => G.kindsOf(l).length).join());
   check("知らない key（constructor など）は問題にしない", G.make("constructor") === null && G.make("__proto__") === null && G.make("toString") === null);
   const longLook = G.KINDS.filter((k) => [...k.look].length > 45).map((k) => k.id);
   check("ヒントは45字以内（やさしい日本語。一文を短く）", !longLook.length, longLook.join(","));
@@ -101,9 +114,13 @@ const FIRST_DAY = '[["wa|0","kata|w1","ookii|22","tonari|o1-0","jiten|16"],["omo
     if (i < 60) [...dk, ...hk].forEach((k) => cover.add(k));
   }
   check("今日の5問（やさしい2・ふつう2・むずかしい1、種類は重ねない）と上級（むずかしい3・今日のむずかしいと別）を3年分作れる", bad.length === 0, bad.slice(0, 5).join(","));
-  check("2か月のうちに12種類が全部出る・前の日と同じ5問の日が無い", cover.size === 12 && sameAsPrev === 0, `${cover.size}種類・前の日と同じ ${sameAsPrev}日`);
+  check("2か月のうちに15種類が全部出る・前の日と同じ5問の日が無い", cover.size === 15 && sameAsPrev === 0, `${cover.size}種類・前の日と同じ ${sameAsPrev}日`);
   // 過去の日の問題を変えない：はじめの日の5問を控えと比べる（gen.js・BANK を変えたら、ここが落ちる）
   check("過去の日の問題が変わらない（第1回 2026-11-07 の5問と上級）", JSON.stringify([G.dailyTags("2026-11-07"), G.hardTags("2026-11-07")]) === FIRST_DAY, JSON.stringify([G.dailyTags("2026-11-07"), G.hardTags("2026-11-07")]));
+  { const v2 = new Set(G.KINDS.filter((k) => k.v === 2).map((k) => k.id)), seen = new Set(); let early = 0;
+    for (let i = -30; i < 60; i++) { const d = new Date(Date.parse(G.V2DAY) + i * 864e5).toISOString().slice(0, 10), ks = [...G.dailyTags(d), ...G.hardTags(d)].map((t) => G.BANK[t].kind);
+      if (d < G.V2DAY) early += ks.filter((k) => v2.has(k)).length; else ks.filter((k) => v2.has(k)).forEach((k) => seen.add(k)); }
+    check("2026-11-07 までの日は、あとから足した種類（衛星など）を出さない・11-08 からは出る", early === 0 && seen.size === v2.size, `前 ${early}・後 ${[...seen].join(",")}`); }
 }
 
 // ---- 2. ファイルの中身 ----
