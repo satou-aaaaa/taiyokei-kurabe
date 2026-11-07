@@ -117,6 +117,8 @@ const FIRST_DAY = '[["wa|0","kata|w1","ookii|22","tonari|o1-0","jiten|16"],["omo
   check("2か月のうちに15種類が全部出る・前の日と同じ5問の日が無い", cover.size === 15 && sameAsPrev === 0, `${cover.size}種類・前の日と同じ ${sameAsPrev}日`);
   // 過去の日の問題を変えない：はじめの日の5問を控えと比べる（gen.js・BANK を変えたら、ここが落ちる）
   check("過去の日の問題が変わらない（第1回 2026-11-07 の5問と上級）", JSON.stringify([G.dailyTags("2026-11-07"), G.hardTags("2026-11-07")]) === FIRST_DAY, JSON.stringify([G.dailyTags("2026-11-07"), G.hardTags("2026-11-07")]));
+  { const withM = Object.keys(G.BANK).filter((t) => G.make(t).mame), bad = withM.filter((t) => { const P = G.make(t); return P.kind === "mame" || P.at.length !== 1 || !(G.PMAME[G.PLANETS[P.at[0]].n] || []).includes(P.mame) || [...P.mame].length > 40; });
+    check("正解のあとの豆知識：惑星1つの問題で、その惑星の文が出る（40字以内・豆知識から当てる問題では出さない）", withM.length >= 100 && !bad.length, `${withM.length}問・${bad.slice(0, 3).join(",")}`); }
   { const v2 = new Set(G.KINDS.filter((k) => k.v === 2).map((k) => k.id)), seen = new Set(); let early = 0;
     for (let i = -30; i < 60; i++) { const d = new Date(Date.parse(G.V2DAY) + i * 864e5).toISOString().slice(0, 10), ks = [...G.dailyTags(d), ...G.hardTags(d)].map((t) => G.BANK[t].kind);
       if (d < G.V2DAY) early += ks.filter((k) => v2.has(k)).length; else ks.filter((k) => v2.has(k)).forEach((k) => seen.add(k)); }
@@ -379,6 +381,20 @@ try {
         if (ov > 0) bad.push(`${w}px 文字${fs} ${go || "ホーム"} ${ov}px`);
         small.push(...(await q.$$eval("button:not([disabled]), a[href]", (bs) => bs.filter((b) => b.checkVisibility() && !b.closest(".cal")).filter((b) => b.getBoundingClientRect().height < 44).map((b) => (b.id || b.className || b.textContent).slice(0, 20)))).map((x) => `${w}/${fs}/${go}:${x}`));
       }
+      await q.context().close();
+    }
+    // 正解すると、惑星1つの問題では豆知識が出る（豆知識から当てる問題では出さない）
+    {
+      const q = await newPage(); await closeHow(q); await q.click("#go-e"); await q.waitForTimeout(150);
+      const t1 = Object.keys(G.BANK).find((t) => G.make(t).mame && G.make(t).at[0] === 5), t2 = G.keysOf("mame")[0], got = [];
+      for (const tag of [t1, t2]) {
+        await q.evaluate((t) => { __km.save((x) => { x.runs.e.list[x.runs.e.res.length] = t; }); __km.play(); }, tag);
+        await q.waitForTimeout(150);
+        await q.click(`.ch[data-j="${await ansIdx(q)}"]`); await q.waitForTimeout(100);
+        got.push(await q.evaluate(() => { const m = document.querySelector(".verdict .why.mame"); return m ? m.textContent : ""; }));
+        await q.click("#next"); await q.waitForTimeout(100);
+      }
+      check("正解すると豆知識が出る（惑星1つの問題）・豆知識から当てる問題では出さない", got[0] === "豆知識：" + G.PMAME["土星"][0] && got[1] === "", JSON.stringify([t1, ...got]));
       await q.context().close();
     }
     // とことん：正解したすぐあとでも「ここで降りる」で終われる（2026-11-07 CodeRabbit。前は次の問題へ進むまで押しても何も起きなかった）
