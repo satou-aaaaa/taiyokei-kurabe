@@ -1,0 +1,29 @@
+{
+  "name": "太陽系くらべ",
+  "short_name": "太陽系くらべ",
+  "description": "水星から海王星まで、8つの惑星の並び・大きさ・重さ・1周にかかる時間・特徴を当てる1日5問（NASA・JAXA・天文学辞典にもとづく）",
+  "lang": "ja",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f1e7",
+  "theme_color": "#f6f1e7",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
